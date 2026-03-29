@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { collection, query, orderBy, onSnapshot, where, limit } from "firebase/firestore";
 import { db } from "../firebase";
@@ -11,6 +11,7 @@ export const Home: React.FC = () => {
   const [stories, setStories] = useState<Story[]>([]);
   const [filter, setFilter] = useState<"likes" | "contributors" | "followers" | "recent">("recent");
   const [category, setCategory] = useState<string>("All");
+  const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -31,6 +32,13 @@ export const Home: React.FC = () => {
     return () => unsubscribe();
   }, [filter, category]);
 
+  const filteredStories = useMemo(() => {
+    return stories.filter(story => 
+      story.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      story.category.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [stories, searchQuery]);
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
@@ -42,6 +50,17 @@ export const Home: React.FC = () => {
           <Plus className="w-6 h-6" />
           Commencer une histoire
         </Link>
+      </div>
+
+      <div className="relative mb-8 max-w-2xl">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+        <input
+          type="text"
+          placeholder="Rechercher une histoire par titre ou catégorie..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full pl-12 pr-4 py-4 rounded-2xl bg-white border border-gray-100 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-lg"
+        />
       </div>
 
       <div className="flex flex-wrap gap-4 mb-8">
@@ -64,15 +83,15 @@ export const Home: React.FC = () => {
             <div key={i} className="bg-white rounded-2xl h-80 animate-pulse border border-gray-100" />
           ))}
         </div>
-      ) : stories.length === 0 ? (
+      ) : filteredStories.length === 0 ? (
         <div className="text-center py-24 bg-white rounded-3xl border border-dashed border-gray-200">
           <BookOpen className="w-16 h-16 text-gray-200 mx-auto mb-4" />
           <h3 className="text-xl font-serif font-bold text-gray-400">Aucune histoire trouvée</h3>
-          <p className="text-gray-400">Soyez le premier à en créer une !</p>
+          <p className="text-gray-400">{searchQuery ? "Essayez d'autres mots clés." : "Soyez le premier à en créer une !"}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {stories.map((story, idx) => (
+          {filteredStories.map((story, idx) => (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
