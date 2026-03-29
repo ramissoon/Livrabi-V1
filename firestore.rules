@@ -1,0 +1,81 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && 
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+         request.auth.token.email == "nguessanramissou01@gmail.com");
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'pseudo', 'favoriteWord', 'role', 'createdAt']) &&
+             data.pseudo is string && data.pseudo.size() >= 3 &&
+             data.role in ['admin', 'user'];
+    }
+
+    function isValidStory(data) {
+      return data.keys().hasAll(['id', 'title', 'category', 'authorId', 'authorPseudo', 'createdAt', 'isClosed']) &&
+             data.title is string && data.title.size() >= 3 &&
+             data.category is string;
+    }
+
+    function isValidParagraph(data) {
+      return data.keys().hasAll(['id', 'storyId', 'content', 'authorId', 'authorPseudo', 'createdAt', 'level']) &&
+             data.content is string && data.content.size() >= 10;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    // Stats
+    match /stats/{docId} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+
+    // Users
+    match /users/{userId} {
+      allow read: if true;
+      // Allow creation if it's the user themselves
+      allow create: if isOwner(userId) && isValidUser(request.resource.data);
+      // Allow update if it's the owner (but don't allow role change unless admin)
+      allow update: if isOwner(userId) && 
+                    (request.resource.data.role == resource.data.role || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    // Stories
+    match /stories/{storyId} {
+      allow read: if true;
+      allow create: if isAuthenticated() && isValidStory(request.resource.data);
+      // Allow updates for likes, followers, contributors, or if admin
+      allow update: if isAuthenticated() && (
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likesCount', 'followersCount', 'contributorsCount', 'isClosed']) ||
+        isAdmin()
+      );
+      allow delete: if isAdmin();
+
+      // Paragraphs
+      match /paragraphs/{paragraphId} {
+        allow read: if true;
+        allow create: if isAuthenticated() && isValidParagraph(request.resource.data) && !get(/databases/$(database)/documents/stories/$(storyId)).data.isClosed;
+        allow update: if isAdmin();
+        allow delete: if isAdmin();
+      }
+    }
+  }
+}

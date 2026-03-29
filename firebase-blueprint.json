@@ -1,0 +1,85 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile information",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "pseudo": { "type": "string" },
+        "favoriteWord": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "user"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "followedStories": { "type": "array", "items": { "type": "string" } },
+        "likedStories": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["uid", "pseudo", "favoriteWord", "role", "createdAt"]
+    },
+    "Story": {
+      "title": "Story",
+      "description": "A collaborative story",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "category": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "authorId": { "type": "string" },
+        "authorPseudo": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "isClosed": { "type": "boolean" },
+        "likesCount": { "type": "number" },
+        "contributorsCount": { "type": "number" },
+        "followersCount": { "type": "number" },
+        "firstParagraphId": { "type": "string" }
+      },
+      "required": ["id", "title", "category", "authorId", "authorPseudo", "createdAt", "isClosed"]
+    },
+    "Paragraph": {
+      "title": "Paragraph",
+      "description": "A single paragraph in a story",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "storyId": { "type": "string" },
+        "content": { "type": "string" },
+        "authorId": { "type": "string" },
+        "authorPseudo": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "parentId": { "type": "string" },
+        "isOfficial": { "type": "boolean" },
+        "level": { "type": "number" }
+      },
+      "required": ["id", "storyId", "content", "authorId", "authorPseudo", "createdAt", "level"]
+    },
+    "Stats": {
+      "title": "Stats",
+      "description": "Global application statistics",
+      "type": "object",
+      "properties": {
+        "totalUsers": { "type": "number" },
+        "activeStories": { "type": "number" },
+        "publishedParagraphs": { "type": "number" },
+        "totalLikes": { "type": "number" }
+      }
+    }
+  },
+  "firestore": {
+    "/users/{uid}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "/stories/{storyId}": {
+      "schema": "Story",
+      "description": "Collaborative stories"
+    },
+    "/stories/{storyId}/paragraphs/{paragraphId}": {
+      "schema": "Paragraph",
+      "description": "Paragraphs belonging to a story"
+    },
+    "/stats/global": {
+      "schema": "Stats",
+      "description": "Global statistics"
+    }
+  }
+}
